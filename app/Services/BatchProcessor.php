@@ -141,20 +141,39 @@ class BatchProcessor {
 		}
 		$sizes_to_delete = $metadata['sizes'];
 		if ( $skip_existing || ! empty( $selected_sizes ) ) {
-			foreach ( $sizes_to_delete as $size => $size_data ) {
-				if ( $skip_existing && isset( $size_data['file'] ) ) {
-					$size_file = \trailingslashit( dirname( $file ) ) . $size_data['file'];
-					if ( file_exists( $size_file ) ) {
-						unset( $sizes_to_delete[ $size ] );
-						continue;
-					}
-				}
-				if ( ! empty( $selected_sizes ) && ! in_array( $size, $selected_sizes, true ) ) {
-					unset( $sizes_to_delete[ $size ] );
-				}
-			}
+			$sizes_to_delete = static::filter_sizes_to_delete_before_regenerate(
+				$file,
+				$sizes_to_delete,
+				$selected_sizes,
+				$skip_existing
+			);
 		}
 		static::delete_thumbnail_files( $file, $sizes_to_delete );
+	}
+
+	/**
+	 * Narrow which registered sizes should have thumbnails deleted before regeneration.
+	 *
+	 * @param string $file            Attachment path.
+	 * @param array  $sizes_to_delete Copy of metadata sizes (modified).
+	 * @param array  $selected_sizes Selected size names (empty = all).
+	 * @param bool   $skip_existing  Skip sizes whose files already exist.
+	 * @return array
+	 */
+	private static function filter_sizes_to_delete_before_regenerate( $file, array $sizes_to_delete, array $selected_sizes, $skip_existing ) {
+		foreach ( $sizes_to_delete as $size => $size_data ) {
+			if ( $skip_existing && isset( $size_data['file'] ) ) {
+				$size_file = \trailingslashit( dirname( $file ) ) . $size_data['file'];
+				if ( file_exists( $size_file ) ) {
+					unset( $sizes_to_delete[ $size ] );
+					continue;
+				}
+			}
+			if ( ! empty( $selected_sizes ) && ! in_array( $size, $selected_sizes, true ) ) {
+				unset( $sizes_to_delete[ $size ] );
+			}
+		}
+		return $sizes_to_delete;
 	}
 
 	/**
