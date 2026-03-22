@@ -23,6 +23,13 @@ class Plugin {
 	private static $instance = null;
 
 	/**
+	 * Admin DevTools (keeps instance for submenu callback lifetime).
+	 *
+	 * @var DevTools|null
+	 */
+	private $dev_tools;
+
+	/**
 	 * Get the singleton instance
 	 *
 	 * @return Plugin
@@ -62,7 +69,7 @@ class Plugin {
 	 * Load admin pages
 	 */
 	public function load_admin() {
-		new DevTools();
+		$this->dev_tools = new DevTools();
 	}
 
 	/**
@@ -89,7 +96,7 @@ class Plugin {
 		$plugin_url = \plugin_dir_url( CRAFTSMAN_SUITE_PLUGIN_FILE );
 
 		// Use @wordpress/scripts build artifacts.
-		$asset_file = include \plugin_dir_path( CRAFTSMAN_SUITE_PLUGIN_FILE ) . 'build/index.asset.php';
+		$asset_file = require \plugin_dir_path( CRAFTSMAN_SUITE_PLUGIN_FILE ) . 'build/index.asset.php';
 
 		\wp_enqueue_style(
 			'craftsman-suite-dev-tools',

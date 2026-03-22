@@ -67,7 +67,7 @@ const App = () => {
 					>
 						Documentation
 					</a>
-					.
+					{'.'}
 				</p>
 			</footer>
 		</div>

@@ -67,8 +67,8 @@ const AutoAttachThumbnail = () => {
 				path: '/craftsman-suite/v1/auto-attach-thumbnail/execute',
 				method: 'POST',
 				data: {
-					min_id: parseInt(minId),
-					max_id: parseInt(maxId),
+					min_id: Number.parseInt(minId, 10),
+					max_id: Number.parseInt(maxId, 10),
 				},
 			});
 
