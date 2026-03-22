@@ -53,7 +53,7 @@ class Plugin {
 	 * Load dependencies
 	 */
 	private function load_dependencies() {
-		require_once \ABSPATH . 'wp-admin/includes/image.php';
+		require_once \ABSPATH . 'wp-admin/includes/image.php'; // NOSONAR.
 	}
 
 	/**
@@ -96,7 +96,7 @@ class Plugin {
 		$plugin_url = \plugin_dir_url( CRAFTSMAN_SUITE_PLUGIN_FILE );
 
 		// Use @wordpress/scripts build artifacts.
-		$asset_file = require \plugin_dir_path( CRAFTSMAN_SUITE_PLUGIN_FILE ) . 'build/index.asset.php';
+		$asset_file = require \plugin_dir_path( CRAFTSMAN_SUITE_PLUGIN_FILE ) . 'build/index.asset.php'; // NOSONAR.
 
 		\wp_enqueue_style(
 			'craftsman-suite-dev-tools',

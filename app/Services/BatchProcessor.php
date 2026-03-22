@@ -14,13 +14,6 @@ namespace CraftsmanSuite\Services;
  */
 class BatchProcessor {
 	/**
-	 * Maximum memory usage.
-	 *
-	 * @var int
-	 */
-	private static $max_memory = 52428800;
-
-	/**
 	 * Memory usage threshold percentage.
 	 *
 	 * @var float
@@ -74,35 +67,55 @@ class BatchProcessor {
 	 * @return array Result of the regeneration.
 	 */
 	public static function regenerate_single_attachment( $attachment_id, $selected_sizes = array(), $skip_existing = false ) {
-		$file = \get_attached_file( $attachment_id );
-		if ( ! $file || ! file_exists( $file ) ) {
-			return array(
-				'success' => false,
-				'error'   => 'Source file not found',
-				'status'  => 'missing_source',
-			);
-		}
-
+		$file     = \get_attached_file( $attachment_id );
 		$metadata = \wp_get_attachment_metadata( $attachment_id );
-		if ( ! $metadata ) {
-			return array(
-				'success' => false,
-				'error'   => 'No metadata found',
-				'status'  => 'no_metadata',
-			);
+
+		if ( ! $file || ! file_exists( $file ) ) {
+			$out = static::regeneration_error_result( 'Source file not found', 'missing_source' );
+		} elseif ( ! $metadata ) {
+			$out = static::regeneration_error_result( 'No metadata found', 'no_metadata' );
+		} else {
+			$filter_callback = static::build_intermediate_sizes_filter( $file, $metadata, $selected_sizes, $skip_existing );
+			\add_filter( 'intermediate_image_sizes_advanced', $filter_callback );
+			static::delete_thumbnails_before_regenerate( $file, $metadata, $selected_sizes, $skip_existing );
+
+			$new_metadata = \wp_generate_attachment_metadata( $attachment_id, $file );
+			\remove_filter( 'intermediate_image_sizes_advanced', $filter_callback );
+
+			if ( ! $new_metadata ) {
+				$out = static::regeneration_error_result( 'Failed to generate metadata', 'generation_failed' );
+			} else {
+				if ( ! empty( $selected_sizes ) || $skip_existing ) {
+					if ( ! isset( $new_metadata['sizes'] ) ) {
+						$new_metadata['sizes'] = array();
+					}
+					$new_metadata['sizes'] = array_merge( $metadata['sizes'] ?? array(), $new_metadata['sizes'] );
+				}
+				\wp_update_attachment_metadata( $attachment_id, $new_metadata );
+				$out = static::regeneration_success_result( $attachment_id, $file, $new_metadata );
+			}
 		}
 
-		// Filter sizes to generate.
-		$filter_callback = function ( $sizes ) use ( $selected_sizes, $skip_existing, $metadata, $file ) {
+		return $out;
+	}
+
+	/**
+	 * Filter intermediate sizes before regeneration.
+	 *
+	 * @param string $file            Attachment path.
+	 * @param array  $metadata      Attachment metadata.
+	 * @param array  $selected_sizes Selected size names.
+	 * @param bool   $skip_existing  Skip existing files.
+	 * @return callable
+	 */
+	private static function build_intermediate_sizes_filter( $file, array $metadata, array $selected_sizes, $skip_existing ) {
+		return function ( $sizes ) use ( $file, $metadata, $selected_sizes, $skip_existing ) {
 			$dir = dirname( $file );
 			foreach ( $sizes as $size => $data ) {
-				// If not in selected sizes, remove it.
 				if ( ! empty( $selected_sizes ) && ! in_array( $size, $selected_sizes, true ) ) {
 					unset( $sizes[ $size ] );
 					continue;
 				}
-
-				// If skipping existing, check if file exists.
 				if ( $skip_existing && isset( $metadata['sizes'][ $size ]['file'] ) ) {
 					$size_file = \trailingslashit( $dir ) . $metadata['sizes'][ $size ]['file'];
 					if ( file_exists( $size_file ) ) {
@@ -112,54 +125,58 @@ class BatchProcessor {
 			}
 			return $sizes;
 		};
+	}
 
-		\add_filter( 'intermediate_image_sizes_advanced', $filter_callback );
-
-		// Only delete files that are NOT being skipped.
-		if ( isset( $metadata['sizes'] ) && is_array( $metadata['sizes'] ) ) {
-			$sizes_to_delete = $metadata['sizes'];
-			if ( $skip_existing || ! empty( $selected_sizes ) ) {
-				foreach ( $sizes_to_delete as $size => $size_data ) {
-					// Don't delete if we are skipping existing and it exists.
-					if ( $skip_existing && isset( $size_data['file'] ) ) {
-						$size_file = \trailingslashit( dirname( $file ) ) . $size_data['file'];
-						if ( file_exists( $size_file ) ) {
-							unset( $sizes_to_delete[ $size ] );
-							continue;
-						}
-					}
-
-					// Don't delete if it's not in selected sizes.
-					if ( ! empty( $selected_sizes ) && ! in_array( $size, $selected_sizes, true ) ) {
+	/**
+	 * Remove old thumbnails that will be regenerated.
+	 *
+	 * @param string $file            Attachment path.
+	 * @param array  $metadata        Attachment metadata.
+	 * @param array  $selected_sizes Selected size names.
+	 * @param bool   $skip_existing  Skip existing files.
+	 */
+	private static function delete_thumbnails_before_regenerate( $file, array $metadata, array $selected_sizes, $skip_existing ) {
+		if ( ! isset( $metadata['sizes'] ) || ! is_array( $metadata['sizes'] ) ) {
+			return;
+		}
+		$sizes_to_delete = $metadata['sizes'];
+		if ( $skip_existing || ! empty( $selected_sizes ) ) {
+			foreach ( $sizes_to_delete as $size => $size_data ) {
+				if ( $skip_existing && isset( $size_data['file'] ) ) {
+					$size_file = \trailingslashit( dirname( $file ) ) . $size_data['file'];
+					if ( file_exists( $size_file ) ) {
 						unset( $sizes_to_delete[ $size ] );
+						continue;
 					}
 				}
+				if ( ! empty( $selected_sizes ) && ! in_array( $size, $selected_sizes, true ) ) {
+					unset( $sizes_to_delete[ $size ] );
+				}
 			}
-			static::delete_thumbnail_files( $file, $sizes_to_delete );
 		}
+		static::delete_thumbnail_files( $file, $sizes_to_delete );
+	}
 
-		$new_metadata = \wp_generate_attachment_metadata( $attachment_id, $file );
+	/**
+	 * @param string $error  Message.
+	 * @param string $status Status code.
+	 * @return array
+	 */
+	private static function regeneration_error_result( $error, $status ) {
+		return array(
+			'success' => false,
+			'error'   => $error,
+			'status'  => $status,
+		);
+	}
 
-		\remove_filter( 'intermediate_image_sizes_advanced', $filter_callback );
-
-		if ( ! $new_metadata ) {
-			return array(
-				'success' => false,
-				'error'   => 'Failed to generate metadata',
-				'status'  => 'generation_failed',
-			);
-		}
-
-		// Merge new metadata with old if we only regenerated some sizes.
-		if ( ! empty( $selected_sizes ) || $skip_existing ) {
-			if ( ! isset( $new_metadata['sizes'] ) ) {
-				$new_metadata['sizes'] = array();
-			}
-			$new_metadata['sizes'] = array_merge( $metadata['sizes'] ?? array(), $new_metadata['sizes'] );
-		}
-
-		\wp_update_attachment_metadata( $attachment_id, $new_metadata );
-
+	/**
+	 * @param int    $attachment_id  Attachment ID.
+	 * @param string $file           Path to main file.
+	 * @param array  $new_metadata   New metadata.
+	 * @return array
+	 */
+	private static function regeneration_success_result( $attachment_id, $file, array $new_metadata ) {
 		return array(
 			'success'           => true,
 			'attachment_id'     => $attachment_id,

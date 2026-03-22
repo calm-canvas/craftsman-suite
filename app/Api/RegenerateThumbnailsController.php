@@ -13,6 +13,9 @@ use CraftsmanSuite\Services\BatchProcessor;
  * Class RegenerateThumbnailsController
  */
 class RegenerateThumbnailsController {
+
+	private const REST_NAMESPACE = 'craftsman-suite/v1';
+
 	/**
 	 * Register REST API routes.
 	 *
@@ -20,7 +23,7 @@ class RegenerateThumbnailsController {
 	 */
 	public function register_routes() {
 		\register_rest_route(
-			'craftsman-suite/v1',
+			self::REST_NAMESPACE,
 			'/regenerate-thumbnails/attachments',
 			array(
 				'methods'             => 'GET',
@@ -30,7 +33,7 @@ class RegenerateThumbnailsController {
 		);
 
 		\register_rest_route(
-			'craftsman-suite/v1',
+			self::REST_NAMESPACE,
 			'/regenerate-thumbnails/batch',
 			array(
 				'methods'             => 'POST',
@@ -46,7 +49,7 @@ class RegenerateThumbnailsController {
 		);
 
 		\register_rest_route(
-			'craftsman-suite/v1',
+			self::REST_NAMESPACE,
 			'/regenerate-thumbnails/batch-process',
 			array(
 				'methods'             => 'POST',
@@ -63,7 +66,7 @@ class RegenerateThumbnailsController {
 		);
 
 		\register_rest_route(
-			'craftsman-suite/v1',
+			self::REST_NAMESPACE,
 			'/regenerate-thumbnails/status',
 			array(
 				'methods'             => 'GET',
@@ -73,7 +76,7 @@ class RegenerateThumbnailsController {
 		);
 
 		\register_rest_route(
-			'craftsman-suite/v1',
+			self::REST_NAMESPACE,
 			'/regenerate-thumbnails/sizes',
 			array(
 				'methods'             => 'GET',

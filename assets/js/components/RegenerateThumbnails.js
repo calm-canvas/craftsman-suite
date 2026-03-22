@@ -15,6 +15,8 @@ import {
 import apiFetch from '@wordpress/api-fetch';
 import { __, sprintf } from '@wordpress/i18n';
 
+const REST_API_BASE = '/craftsman-suite/v1';
+
 const RegenerateThumbnails = () => {
 	const [view, setView] = useState('settings');
 	const [status, setStatus] = useState('idle');
@@ -48,7 +50,6 @@ const RegenerateThumbnails = () => {
 	});
 
 	const [lastProcessed, setLastProcessed] = useState('');
-	const [attachmentIds, setAttachmentIds] = useState([]);
 	const isMountedRef = useRef(true);
 	const shouldStopRef = useRef(false);
 
@@ -62,7 +63,7 @@ const RegenerateThumbnails = () => {
 	const fetchSizes = async () => {
 		try {
 			const response = await apiFetch({
-				path: '/craftsman-suite/v1/regenerate-thumbnails/sizes',
+				path: `${REST_API_BASE}/regenerate-thumbnails/sizes`,
 			});
 			if (isMountedRef.current && response.success) {
 				setAvailableSizes(response.sizes);
@@ -86,7 +87,7 @@ const RegenerateThumbnails = () => {
 
 		try {
 			const response = await apiFetch({
-				path: '/craftsman-suite/v1/regenerate-thumbnails/attachments',
+				path: `${REST_API_BASE}/regenerate-thumbnails/attachments`,
 			});
 			if (!isMountedRef.current) {
 				return;
@@ -94,7 +95,6 @@ const RegenerateThumbnails = () => {
 
 			if (response.success) {
 				const ids = response.attachment_ids;
-				setAttachmentIds(ids);
 				const initialStats = {
 					total: response.total,
 					processed: 0,
@@ -169,7 +169,7 @@ const RegenerateThumbnails = () => {
 
 		try {
 			const response = await apiFetch({
-				path: '/craftsman-suite/v1/regenerate-thumbnails/batch-process',
+				path: `${REST_API_BASE}/regenerate-thumbnails/batch-process`,
 				method: 'POST',
 				data: {
 					attachment_ids: batchIds,
@@ -236,6 +236,15 @@ const RegenerateThumbnails = () => {
 
 	const handleStop = () => {
 		shouldStopRef.current = true;
+	};
+
+	const toggleSizeSelection = (size, checked) => {
+		setSettings((prev) => ({
+			...prev,
+			selectedSizes: checked
+				? [...prev.selectedSizes, size]
+				: prev.selectedSizes.filter((s) => s !== size),
+		}));
 	};
 
 	const handleStartOver = () => {
@@ -310,20 +319,9 @@ const RegenerateThumbnails = () => {
 										checked={settings.selectedSizes.includes(
 											size
 										)}
-										onChange={(checked) => {
-											const newSelected = checked
-												? [
-														...settings.selectedSizes,
-														size,
-													]
-												: settings.selectedSizes.filter(
-														(s) => s !== size
-													);
-											setSettings({
-												...settings,
-												selectedSizes: newSelected,
-											});
-										}}
+										onChange={(checked) =>
+											toggleSizeSelection(size, checked)
+										}
 									/>
 								)
 							)
@@ -374,6 +372,12 @@ const RegenerateThumbnails = () => {
 		const isCompleted = status === 'completed';
 		const isStopped = status === 'stopped';
 		const isRunning = status === 'processing';
+		let statusBadgeClass = 'bg-gray-100 text-gray-800';
+		if (isCompleted) {
+			statusBadgeClass = 'bg-green-100 text-green-800';
+		} else if (isRunning) {
+			statusBadgeClass = 'bg-blue-100 text-blue-800';
+		}
 
 		return (
 			<Card className="bg-wp-surface border border-wp-border shadow-wp-card sm:rounded-sm">
@@ -382,13 +386,7 @@ const RegenerateThumbnails = () => {
 						{__('Progress', 'craftsman-suite')}
 					</h3>
 					<span
-						className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-							isCompleted
-								? 'bg-green-100 text-green-800'
-								: isRunning
-									? 'bg-blue-100 text-blue-800'
-									: 'bg-gray-100 text-gray-800'
-						}`}
+						className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass}`}
 					>
 						{status.charAt(0).toUpperCase() + status.slice(1)}
 					</span>
