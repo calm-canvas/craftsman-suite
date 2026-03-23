@@ -1,4 +1,4 @@
-import { render, useEffect } from '@wordpress/element';
+import { createRoot, useEffect } from '@wordpress/element';
 import AutoAttachThumbnail from './components/AutoAttachThumbnail';
 import RegenerateThumbnails from './components/RegenerateThumbnails';
 import { __ } from '@wordpress/i18n';
@@ -6,21 +6,19 @@ import { __ } from '@wordpress/i18n';
 const App = () => {
 	useEffect(() => {
 		const initDarkMode = () => {
-			if (
-				window.matchMedia &&
-				window.matchMedia('(prefers-color-scheme: dark)').matches
-			) {
+			const mediaQuery = globalThis.matchMedia?.(
+				'(prefers-color-scheme: dark)'
+			);
+			if (mediaQuery?.matches) {
 				document.documentElement.classList.add('dark');
 			}
-			window
-				.matchMedia('(prefers-color-scheme: dark)')
-				.addEventListener('change', (event) => {
-					if (event.matches) {
-						document.documentElement.classList.add('dark');
-					} else {
-						document.documentElement.classList.remove('dark');
-					}
-				});
+			mediaQuery?.addEventListener('change', (event) => {
+				if (event.matches) {
+					document.documentElement.classList.add('dark');
+				} else {
+					document.documentElement.classList.remove('dark');
+				}
+			});
 		};
 		initDarkMode();
 	}, []);
@@ -77,6 +75,6 @@ const App = () => {
 document.addEventListener('DOMContentLoaded', () => {
 	const root = document.getElementById('craftsman-suite-dev-tools-root');
 	if (root) {
-		render(<App />, root);
+		createRoot(root).render(<App />);
 	}
 });
