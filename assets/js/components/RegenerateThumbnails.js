@@ -21,7 +21,7 @@ const RegenerateThumbnails = () => {
 	const [view, setView] = useState('settings');
 	const [status, setStatus] = useState('idle');
 	const [settings, setSettings] = useState({
-		batchSize: Number(window.craftsmanSuiteData?.batch_size || 1),
+		batchSize: Number(globalThis.craftsmanSuiteData?.batch_size || 1),
 		selectedSizes: [],
 		skipExisting: false,
 	});
@@ -464,8 +464,8 @@ const RegenerateThumbnails = () => {
 						<Button
 							variant="primary"
 							onClick={() =>
-								(window.location.href =
-									window.craftsmanSuiteData.admin_url +
+								(globalThis.location.href =
+									globalThis.craftsmanSuiteData.admin_url +
 									'upload.php')
 							}
 						>

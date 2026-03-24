@@ -1,4 +1,4 @@
-import { render, useEffect } from '@wordpress/element';
+import { createRoot, useEffect } from '@wordpress/element';
 import AutoAttachThumbnail from './components/AutoAttachThumbnail';
 import RegenerateThumbnails from './components/RegenerateThumbnails';
 import { __ } from '@wordpress/i18n';
@@ -7,12 +7,12 @@ const App = () => {
 	useEffect(() => {
 		const initDarkMode = () => {
 			if (
-				window.matchMedia &&
-				window.matchMedia('(prefers-color-scheme: dark)').matches
+				globalThis.matchMedia &&
+				globalThis.matchMedia('(prefers-color-scheme: dark)').matches
 			) {
 				document.documentElement.classList.add('dark');
 			}
-			window
+			globalThis
 				.matchMedia('(prefers-color-scheme: dark)')
 				.addEventListener('change', (event) => {
 					if (event.matches) {
@@ -75,8 +75,8 @@ const App = () => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-	const root = document.getElementById('craftsman-suite-dev-tools-root');
-	if (root) {
-		render(<App />, root);
+	const rootEl = document.getElementById('craftsman-suite-dev-tools-root');
+	if (rootEl) {
+		createRoot(rootEl).render(<App />);
 	}
 });
