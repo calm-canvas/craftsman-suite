@@ -6,19 +6,21 @@ import { __ } from '@wordpress/i18n';
 const App = () => {
 	useEffect(() => {
 		const initDarkMode = () => {
-			const mediaQuery = globalThis.matchMedia?.(
-				'(prefers-color-scheme: dark)'
-			);
-			if (mediaQuery?.matches) {
+			if (
+				globalThis.matchMedia &&
+				globalThis.matchMedia('(prefers-color-scheme: dark)').matches
+			) {
 				document.documentElement.classList.add('dark');
 			}
-			mediaQuery?.addEventListener('change', (event) => {
-				if (event.matches) {
-					document.documentElement.classList.add('dark');
-				} else {
-					document.documentElement.classList.remove('dark');
-				}
-			});
+			globalThis
+				.matchMedia('(prefers-color-scheme: dark)')
+				.addEventListener('change', (event) => {
+					if (event.matches) {
+						document.documentElement.classList.add('dark');
+					} else {
+						document.documentElement.classList.remove('dark');
+					}
+				});
 		};
 		initDarkMode();
 	}, []);
@@ -73,8 +75,8 @@ const App = () => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-	const root = document.getElementById('craftsman-suite-dev-tools-root');
-	if (root) {
-		createRoot(root).render(<App />);
+	const rootEl = document.getElementById('craftsman-suite-dev-tools-root');
+	if (rootEl) {
+		createRoot(rootEl).render(<App />);
 	}
 });
