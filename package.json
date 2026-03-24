@@ -8,6 +8,8 @@
 	"scripts": {
 		"build": "wp-scripts build --webpack-src-dir=assets/js --webpack-copy-php && postcss assets/css/style.css -o build/index.css",
 		"start": "wp-scripts start --webpack-src-dir=assets/js --webpack-copy-php & sleep 2 && postcss assets/css/style.css -o build/index.css --watch",
+		"lint": "wp-scripts lint-js && wp-scripts lint-style",
+		"lint:fix": "wp-scripts lint-js --fix && wp-scripts lint-style --fix",
 		"format": "wp-scripts format && wp-scripts lint-js --fix && wp-scripts lint-style --fix"
 	},
 	"devDependencies": {
